@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">Музыка</string>
+
+    <string name="main_activity_title">Музыка</string>
+    <string name="settings_activity_title">Настройки</string>
+
+    <string name="settings_music_service">Музыкальный сервис</string>
+    <string name="settings_music_client_id">Введите ID...</string>
+    <string name="settings_music_client_secret">Введите Secret...</string>
+
+    <string name="settings_use_user_api">Использовать свой API</string>
+    <string name="settings_use_user_api_desc">Если выключено, используется встроенный ключ</string>
+
+    <string name="settings_text">ГуА Музыка\nАвторское право: 2026 GuA Team\n2026 Impergram Team\n2026 Imperium Team\n2026 Gleb Obitotsky</string>
+
+    <string name="title_activity_settings">SettingsActivity</string>
+</resources>

@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">GuA music</string>
+
+    <string name="main_activity_title">My music</string>
+    <string name="settings_activity_title">Settings</string>
+
+    <string name="settings_music_service">Music service</string>
+    <string name="settings_music_client_id">Enter ID...</string>
+    <string name="settings_music_client_secret">Enter Secret...</string>
+
+    <string name="settings_use_user_api">Use your own API</string>
+    <string name="settings_use_user_api_desc">If disabled, a built-in key will be used</string>
+
+    <string name="settings_text">GuA Music\nCopyright: 2026 GuA Team\n2026 Impergram Team\n2026 Imperium Team\n2026 Gleb Obitotsky</string>
+
+    <string name="title_activity_settings">SettingsActivity</string>
+</resources>
