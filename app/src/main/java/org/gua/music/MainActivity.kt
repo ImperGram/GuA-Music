@@ -30,7 +30,9 @@ import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import org.gua.music.settings.BetaSettingsActivity
 import org.gua.music.settings.SettingsActivity
+import org.gua.music.settings.SettingsConfig
 import org.gua.music.ui.theme.GuAMusicTheme
+import ru.gua.soundcloud.auth.AuthSoundCloud
 import kotlin.jvm.java
 
 class MainActivity : ComponentActivity() {
@@ -54,6 +56,9 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainTitle() {
     val scrollState = rememberScrollState()
+    val context = LocalContext.current
+
+    val scAuth = androidx.compose.runtime.remember { AuthSoundCloud() }
 
     Column(
         modifier = Modifier
@@ -75,16 +80,15 @@ fun MainTitle() {
                 fontWeight = FontWeight.Bold
             )
 
-            val context = LocalContext.current
-
             Row {
-                FilledTonalIconButton(onClick = {  }) {
+                FilledTonalIconButton(onClick = { /* TODO: Уведомления */ }) {
                     Icon(Icons.Default.Notifications, contentDescription = "Уведомления")
                 }
 
                 Spacer(modifier = Modifier.width(8.dp))
 
                 FilledTonalIconButton(onClick = {
+
                     val intent = Intent(context, SettingsActivity::class.java)
                     context.startActivity(intent)
                 }) {
@@ -93,8 +97,16 @@ fun MainTitle() {
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                FilledTonalIconButton(onClick = {  }) {
-                    Icon(Icons.Default.AccountCircle, contentDescription = "Аккаунт")
+                if ( SettingsConfig.useUserSoundCloudApi ) {
+                    FilledTonalIconButton(onClick = {
+                        scAuth.auth(
+                            context = context,
+                            clientID = Extra.clientID,
+                            redirectURI = Extra.redirectURI
+                        )
+                    }) {
+                        Icon(Icons.Default.AccountCircle, contentDescription = "Аккаунт")
+                    }
                 }
             }
         }

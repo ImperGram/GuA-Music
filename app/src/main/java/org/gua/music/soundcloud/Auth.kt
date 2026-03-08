@@ -10,4 +10,9 @@ package org.gua.music.soundcloud
 import ru.gua.soundcloud.auth.AuthSoundCloud
 
 class Auth {
+
+    val soundCloudAuth = AuthSoundCloud().apply {
+
+    }
+
 }

@@ -57,4 +57,5 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     implementation(libs.androidx.core.splashscreen)
     implementation(project(":soundcloud"))
+    implementation("androidx.browser:browser:1.8.0")
 }
