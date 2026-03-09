@@ -9,8 +9,9 @@ package ru.gua.soundcloud.auth
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import ru.gua.soundcloud.help.generators.GeneratorStringAndPkce
+import androidx.core.content.edit
+import androidx.core.net.toUri
 
 class AuthSoundCloud {
 
@@ -20,12 +21,12 @@ class AuthSoundCloud {
         val codeChallenge = GeneratorStringAndPkce.generateCodeChallenge(codeVerifier)
 
         val prefs = context.getSharedPreferences("gua_sc_auth_internal", Context.MODE_PRIVATE)
-        prefs.edit()
-            .putString("last_verifier", codeVerifier)
-            .putString("last_state", state)
-            .apply()
+        prefs.edit {
+            putString("last_verifier", codeVerifier)
+                .putString("last_state", state)
+        }
 
-        val authUri = Uri.parse("https://secure.soundcloud.com/authorize")
+        val authUri = "https://secure.soundcloud.com/authorize".toUri()
             .buildUpon()
             .appendQueryParameter("client_id", clientID)
             .appendQueryParameter("redirect_uri", redirectURI)
