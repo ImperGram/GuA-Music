@@ -7,8 +7,11 @@
 
 package org.gua.music
 
+import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -28,37 +31,76 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import org.gua.music.settings.BetaSettingsActivity
 import org.gua.music.settings.SettingsActivity
 import org.gua.music.settings.SettingsConfig
 import org.gua.music.ui.theme.GuAMusicTheme
 import ru.gua.soundcloud.auth.AuthSoundCloud
-import kotlin.jvm.java
 
 class MainActivity : ComponentActivity() {
+
+    private val scAuth = AuthSoundCloud()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        handleIntent(intent)
+
         setContent {
             GuAMusicTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    MainTitle()
+                    MainTitle(scAuth)
                 }
             }
         }
     }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        val data: Uri? = intent?.data
+        if (data != null && data.toString().startsWith(Extra.redirectURI)) {
+            val code = data.getQueryParameter("code")
+            if (code != null) {
+                scAuth.exchangeCodeForToken(
+                    context = this,
+                    clientID = Extra.clientID,
+                    clientSecret = Extra.clientSecret,
+                    redirectURI = Extra.redirectURI,
+                    code = code
+                ) { tokenResponse, error ->
+                    if (tokenResponse != null) {
+                        saveTokenData(tokenResponse.accessToken, tokenResponse.tokenType)
+                    } else if (error != null) {
+                        runOnUiThread {
+                            Toast.makeText(this, "Ошибка входа: ${error.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun saveTokenData(token: String, type: String) {
+        getSharedPreferences("gua_music_prefs", Context.MODE_PRIVATE).edit()
+            .putString("sc_access_token", token)
+            .putString("sc_token_type", type)
+            .apply()
+    }
 }
 
 @Composable
-fun MainTitle() {
+fun MainTitle(scAuth: AuthSoundCloud) {
     val scrollState = rememberScrollState()
     val context = LocalContext.current
-
-    val scAuth = androidx.compose.runtime.remember { AuthSoundCloud() }
 
     Column(
         modifier = Modifier
@@ -88,25 +130,20 @@ fun MainTitle() {
                 Spacer(modifier = Modifier.width(8.dp))
 
                 FilledTonalIconButton(onClick = {
-
-                    val intent = Intent(context, SettingsActivity::class.java)
-                    context.startActivity(intent)
+                    context.startActivity(Intent(context, SettingsActivity::class.java))
                 }) {
                     Icon(Icons.Default.Settings, contentDescription = "Настройки")
                 }
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                if ( SettingsConfig.useUserSoundCloudApi ) {
-                    FilledTonalIconButton(onClick = {
-                        scAuth.auth(
-                            context = context,
-                            clientID = Extra.clientID,
-                            redirectURI = Extra.redirectURI
-                        )
-                    }) {
-                        Icon(Icons.Default.AccountCircle, contentDescription = "Аккаунт")
+                val isSoundCloud = SettingsConfig.musicService == SettingsConfig.SERVICE_SOUNDCLOUD
+                FilledTonalIconButton(onClick = {
+                    if (isSoundCloud) {
+                        scAuth.auth(context, Extra.clientID, Extra.redirectURI)
                     }
+                }) {
+                    Icon(Icons.Default.AccountCircle, contentDescription = "Аккаунт")
                 }
             }
         }
