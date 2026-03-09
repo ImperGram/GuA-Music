@@ -16,22 +16,15 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import org.gua.music.settings.SettingsActivity
 import org.gua.music.settings.SettingsConfig
 import org.gua.music.ui.theme.GuAMusicTheme
 import ru.gua.soundcloud.auth.AuthSoundCloud
@@ -78,10 +71,17 @@ class MainActivity : ComponentActivity() {
                     code = code
                 ) { tokenResponse, error ->
                     if (tokenResponse != null) {
-                        saveTokenData(tokenResponse.accessToken, tokenResponse.tokenType)
+                        saveTokenData(
+                            tokenResponse.accessToken,
+                            tokenResponse.tokenType,
+                            tokenResponse.refreshToken
+                        )
+                        runOnUiThread {
+                            Toast.makeText(this, "Вход выполнен!", Toast.LENGTH_SHORT).show()
+                        }
                     } else if (error != null) {
                         runOnUiThread {
-                            Toast.makeText(this, "Ошибка входа: ${error.message}", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, "Ошибка обмена: ${error.message}", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
@@ -89,63 +89,53 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun saveTokenData(token: String, type: String) {
+    private fun saveTokenData(token: String, type: String, refreshToken: String?) {
         getSharedPreferences("gua_music_prefs", Context.MODE_PRIVATE).edit()
             .putString("sc_access_token", token)
             .putString("sc_token_type", type)
+            .putString("sc_refresh_token", refreshToken)
             .apply()
+    }
+
+    private fun refreshMyToken(onComplete: (Boolean) -> Unit) {
+        val prefs = getSharedPreferences("gua_music_prefs", Context.MODE_PRIVATE)
+        val rt = prefs.getString("sc_refresh_token", null)
+
+        if (rt == null) {
+            onComplete(false)
+            return
+        }
+
+        scAuth.refreshToken(
+            clientID = Extra.clientID,
+            clientSecret = Extra.clientSecret,
+            refreshToken = rt
+        ) { response, error ->
+            if (response != null) {
+                saveTokenData(response.accessToken, response.tokenType, response.refreshToken)
+                onComplete(true)
+            } else {
+                onComplete(false)
+            }
+        }
     }
 }
 
 @Composable
 fun MainTitle(scAuth: AuthSoundCloud) {
-    val scrollState = rememberScrollState()
     val context = LocalContext.current
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(horizontal = 14.dp)
-    ) {
-        Spacer(modifier = Modifier.height(37.dp))
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        val isSoundCloud = SettingsConfig.musicService == SettingsConfig.SERVICE_SOUNDCLOUD
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = stringResource(id = R.string.main_activity_title),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.Bold
-            )
-
-            Row {
-                FilledTonalIconButton(onClick = { /* TODO: Уведомления */ }) {
-                    Icon(Icons.Default.Notifications, contentDescription = "Уведомления")
-                }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                FilledTonalIconButton(onClick = {
-                    context.startActivity(Intent(context, SettingsActivity::class.java))
-                }) {
-                    Icon(Icons.Default.Settings, contentDescription = "Настройки")
-                }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                val isSoundCloud = SettingsConfig.musicService == SettingsConfig.SERVICE_SOUNDCLOUD
-                FilledTonalIconButton(onClick = {
-                    if (isSoundCloud) {
-                        scAuth.auth(context, Extra.clientID, Extra.redirectURI)
-                    }
-                }) {
-                    Icon(Icons.Default.AccountCircle, contentDescription = "Аккаунт")
-                }
+        Button(onClick = {
+            if (isSoundCloud) {
+                scAuth.auth(context, Extra.clientID, Extra.redirectURI)
             }
+        }) {
+            Icon(Icons.Default.AccountCircle, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text("Авторизоваться в SoundCloud")
         }
     }
 }

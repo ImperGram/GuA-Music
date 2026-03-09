@@ -88,4 +88,42 @@ class AuthSoundCloud {
             }
         })
     }
+
+    fun refreshToken(
+        clientID: String,
+        clientSecret: String,
+        refreshToken: String,
+        onResult: (SoundCloudTokenResponse?, Throwable?) -> Unit
+    ) {
+        val client = OkHttpClient()
+
+        val formBody = FormBody.Builder()
+            .add("grant_type", "refresh_token")
+            .add("client_id", clientID.trim())
+            .add("client_secret", clientSecret.trim())
+            .add("refresh_token", refreshToken.trim())
+            .build()
+
+        val request = Request.Builder()
+            .url("https://secure.soundcloud.com/oauth/token")
+            .post(formBody)
+            .addHeader("Accept", "application/json")
+            .addHeader("Content-Type", "application/x-www-form-urlencoded")
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                onResult(null, e)
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val body = response.body?.string() ?: ""
+                if (response.isSuccessful) {
+                    onResult(SoundCloudTokenResponse.fromJson(body), null)
+                } else {
+                    onResult(null, IOException("Refresh Error ${response.code}: $body"))
+                }
+            }
+        })
+    }
 }
