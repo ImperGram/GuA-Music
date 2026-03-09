@@ -12,6 +12,7 @@ import android.content.Intent
 import androidx.core.content.edit
 import androidx.core.net.toUri
 import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import ru.gua.soundcloud.auth.models.SoundCloudTokenResponse
 import ru.gua.soundcloud.help.generators.GeneratorStringAndPkce
 import java.io.IOException
@@ -122,6 +123,41 @@ class AuthSoundCloud {
                     onResult(SoundCloudTokenResponse.fromJson(body), null)
                 } else {
                     onResult(null, IOException("Refresh Error ${response.code}: $body"))
+                }
+            }
+        })
+    }
+
+    fun signOut(
+        accessToken: String,
+        onResult: (Boolean, Throwable?) -> Unit
+    ) {
+        val client = OkHttpClient()
+
+        val mediaType = "application/json; charset=utf-8".toMediaTypeOrNull()
+        val jsonBody = "{\"access_token\": \"$accessToken\"}"
+
+        val body = RequestBody.create(mediaType, jsonBody)
+
+        val request = Request.Builder()
+            .url("https://secure.soundcloud.com/sign-out")
+            .post(body)
+            .addHeader("Accept", "application/json")
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                onResult(false, e)
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val responseCode = response.code
+
+                if (response.isSuccessful || responseCode == 401) {
+                    onResult(true, null)
+                } else {
+                    val errorBody = response.body?.string() ?: ""
+                    onResult(false, IOException("Sign-out failed. Status: $responseCode Body: $errorBody"))
                 }
             }
         })
